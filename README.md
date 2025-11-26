@@ -7,13 +7,13 @@ A modern Streamlit web application for exploring, visualizing, and downloading d
 - Visualize time series data with interactive charts (Plotly)
 - Download data as CSV
 - Aggregation options: 3min, 15min, Hour, Day, Week, Month
-- Datahub and multi-index data support
+- Datahub's 'multi-index data support
 - API call preview for each dataset
 
 ## Getting Started
 
 ### Prerequisites
-- Python 3.8+
+- Python 3.11+ tested
 - pip
 
 ### Installation
