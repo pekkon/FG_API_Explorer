@@ -9,9 +9,11 @@ import datetime
 
 
 def sidebar_contact_info():
-
+    # centered logo at the top of the sidebar
+    st.image("./src/logo.png", width=80)
     # Introduction text
-    st.markdown("### Fingrid Open Data Explorer ⚡")
+    
+    st.title("Fingrid Open Data Explorer")
     st.markdown(
         "This application allows you to explore and visualize data from Fingrid's Open Data API. "
         "You can search for various data sources, select the ones you are interested in, and visualize the data over a specified time range. "
@@ -41,6 +43,8 @@ def sidebar_contact_info():
     )
     st.markdown('Data source:  \n[Fingrid Open Data](https://data.fingrid.fi),  '
                 'license [CC 4.0 BY](https://creativecommons.org/licenses/by/4.0/)')
+    
+    
 
 
 

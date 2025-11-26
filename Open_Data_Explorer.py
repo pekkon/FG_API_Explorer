@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, date
 import time
 
 st.set_page_config(
-    page_title="EnergiaData - Wind and Power System Statistics",
+    page_title="Fingrid Open Data Explorer",
     page_icon="https://i.imgur.com/Kd4P3y2.png",
     layout='wide',
     initial_sidebar_state='expanded'
@@ -124,7 +124,7 @@ with st.expander("Search and select data sources"):
             st.session_state.fetched = False
     
 
-    if st.session_state.clicked:
+    if st.session_state.clicked and len(search_key) > 0:
         
         end = datetime.now()
         st.write("Select the time range for which you want to fetch data:")
@@ -154,7 +154,7 @@ with st.expander("Search and select data sources"):
             edited_df = st.data_editor(
                 search_df,
                 column_config={
-                    "nameEn": "Name",
+                    "nameEn": st.column_config.TextColumn("Name", pinned=True),
                     "id": "ID",
                     'dataPeriodEn': "Measurement interval",
                     'unitEn': 'Unit',
@@ -169,6 +169,7 @@ with st.expander("Search and select data sources"):
                         "Search?",
                         help="Select the data sources you want",
                         default=False,
+                        pinned=True,
                     ),
                     'descriptionEn': "Description"
 
@@ -179,6 +180,7 @@ with st.expander("Search and select data sources"):
 
             search_data = st.form_submit_button("Fetch data", on_click=search_button_click)
 df_list = []
+datahub_list = []
 if st.session_state.search:
     st.header("Search results:")
 
@@ -211,6 +213,7 @@ if st.session_state.search:
                     data.columns = [' - '.join(col).strip() for col in data.columns]
                 else:
                     data.columns = [datahub_mapping[col] for col in data.columns]
+                datahub_list.append(data)
 
             else:
                 df_list.append(data)
@@ -234,8 +237,26 @@ if st.session_state.search:
         # sleep for a short while to avoid overwhelming the API
         time.sleep(0.5)
     st.session_state.fetched = True
+
+# Combine datahub data if any
+if st.session_state.fetched and len(datahub_list) > 0:
+    with st.status("Combined Datahub data searches", expanded=True):
+        aggregation_selection = st.radio('Select data aggregation level',
+                                         ['3min', '15min', 'Hour', 'Day', 'Week', 'Month'],
+                                         key="datahub_agg", horizontal=True, index=2)
+
+        all_datahub = pd.concat(datahub_list, axis=1)
+        all_datahub = aggregate_data(all_datahub, aggregation_selection, 'ffill')
+        with chart_container(all_datahub, ["Chart 📈", "Data 📄", "Download 📁"], ["CSV"]):
+            fig = px.line(all_datahub)
+            fig.update_traces(line=dict(width=2.5))
+            fig.update_layout(dict(yaxis_title="", legend_title="Time series", yaxis_tickformat=".2r",
+                                   yaxis_hoverformat=".1f"))
+            st.plotly_chart(fig, use_container_width=True)
+    
+# Combine all other data if any
 if st.session_state.fetched and len(df_list) > 1:
-    with st.status("Combined searches", expanded=True):
+    with st.status("Combined data searches", expanded=True):
         aggregation_selection = st.radio('Select data aggregation level',
                                          ['3min', '15min', 'Hour', 'Day', 'Week', 'Month'],
                                          key="search_agg", horizontal=True, index=2)
