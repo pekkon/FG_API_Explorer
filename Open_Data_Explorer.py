@@ -248,7 +248,7 @@ if st.session_state.fetched and len(df_list) > 0:
                                         key="search_agg", horizontal=True, index=2)
 
         all_data = pd.concat(df_list, axis=1)
-        all_data = aggregate_data(all_data, aggregation_selection, 'ffill')
+        all_data = aggregate_data(all_data, aggregation_selection, 'mean')
         with chart_container(all_data, ["Chart 📈", "Data 📄", "Download 📁"], ["CSV"]):
             fig = px.line(all_data)
             fig.update_traces(line=dict(width=2.5))
@@ -266,7 +266,7 @@ if st.session_state.fetched and len(datahub_list) > 0:
                                          key="datahub_agg", horizontal=True, index=2)
 
         all_datahub = pd.concat(datahub_list, axis=1)
-        all_datahub = aggregate_data(all_datahub, aggregation_selection, 'ffill')
+        all_datahub = aggregate_data(all_datahub, aggregation_selection, 'mean')
         with chart_container(all_datahub, ["Chart 📈", "Data 📄", "Download 📁"], ["CSV"]):
             fig = px.line(all_datahub)
             fig.update_traces(line=dict(width=2.5))
