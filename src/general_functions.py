@@ -39,7 +39,7 @@ def sidebar_contact_info():
     mention(
         label="Source code",
         icon="github",
-        url="https://github.com/pekkon/EnergiaDataApp"
+        url="https://github.com/pekkon/FG_API_Explorer"
     )
     st.markdown('Data source:  \n[Fingrid Open Data](https://data.fingrid.fi),  '
                 'license [CC 4.0 BY](https://creativecommons.org/licenses/by/4.0/)')

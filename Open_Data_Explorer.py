@@ -92,6 +92,7 @@ datahub_mapping = {
 with st.sidebar:
     sidebar_contact_info()
 
+# initiate session state variables
 if 'clicked' not in st.session_state:
     st.session_state.clicked = False
 if 'search' not in st.session_state:
@@ -101,7 +102,7 @@ if 'fetced' not in st.session_state:
 
 st.header('Fingrid Open Data Explorer ⚡')
 
-user_api_key = st.text_input("Enter your own API key for searching:")
+user_api_key = st.text_input("Enter your own API key for searching:", type="password")
 env_api_key = os.environ.get("FGAPIKEY", "")
 api_key = user_api_key if user_api_key else env_api_key
 st.markdown(
@@ -126,7 +127,7 @@ with st.expander("Search and select data sources"):
 
     if st.session_state.clicked and len(search_key) > 0:
         
-        end = datetime.now()
+        end = datetime.now() + timedelta(2)
         st.write("Select the time range for which you want to fetch data:")
         col1, col2, _ = st.columns(3)
         if user_api_key:
@@ -183,60 +184,78 @@ df_list = []
 datahub_list = []
 if st.session_state.search:
     st.header("Search results:")
-
-    for i, row in edited_df[edited_df['search'] == True].iterrows():
-        data_id = row['id']
-        data_name = row['nameEn']
-        data_unit = row['unitEn']
-        data_period = row['dataPeriodEn']
-        with st.status(f"{data_name}"):
-            if (end_date - start_date > timedelta(28)) and data_period == "3 min":
-                st.toast(f'Data search {data_name} measurement interval is 3 min and may take longer to fetch')
-            try:
-                data = get_data_df(start_date, end_date, data_id, data_name, api_key)
-            except Exception as e:
-                st.info(f"Error fetching data for {data_name}: {e}. Retrying in 2 seconds...")
-                time.sleep(2)
+    with st.status("Datasets"):
+        for i, row in edited_df[edited_df['search'] == True].iterrows():
+            data_id = row['id']
+            data_name = row['nameEn']
+            data_unit = row['unitEn']
+            data_period = row['dataPeriodEn']
+            with st.status(f"{data_name}"):
+                if (end_date - start_date > timedelta(28)) and data_period == "3 min":
+                    st.toast(f'Data search {data_name} measurement interval is 3 min and may take longer to fetch')
                 try:
                     data = get_data_df(start_date, end_date, data_id, data_name, api_key)
-                except Exception as e2:
-                    st.error(f"Failed to fetch data for {data_name} after retry: {e2}")
-                    continue
+                except Exception as e:
+                    st.info(f"Error fetching data for {data_name}: {e}. Retrying in 2 seconds...")
+                    time.sleep(2)
+                    try:
+                        data = get_data_df(start_date, end_date, data_id, data_name, api_key)
+                    except Exception as e2:
+                        st.error(f"Failed to fetch data for {data_name} after retry: {e2}")
+                        continue
 
-            # Handle Datahub data
-            if len(data.columns) > 1:
-                cols = list(data.columns[1:])
-                data = pd.pivot_table(data=data, index=data.index, columns=cols, values=data_name)
-                # Flatten multi-index columns
-                if isinstance(data.columns, pd.MultiIndex):
-                    data.columns = [(datahub_mapping[col[0]], datahub_mapping[col[1]]) for col in data.columns]
-                    data.columns = [' - '.join(col).strip() for col in data.columns]
+                # Handle Datahub data
+                if len(data.columns) > 1:
+                    cols = list(data.columns[1:])
+                    data = pd.pivot_table(data=data, index=data.index, columns=cols, values=data_name)
+                    # Flatten multi-index columns
+                    if isinstance(data.columns, pd.MultiIndex):
+                        data.columns = [(datahub_mapping[col[0]], datahub_mapping[col[1]]) for col in data.columns]
+                        data.columns = [' - '.join(col).strip() for col in data.columns]
+                    else:
+                        data.columns = [datahub_mapping[col] for col in data.columns]
+                    datahub_list.append(data)
                 else:
-                    data.columns = [datahub_mapping[col] for col in data.columns]
-                datahub_list.append(data)
+                    df_list.append(data)
 
-            else:
-                df_list.append(data)
-            with chart_container(data, ["Chart 📈", "Data 📄", "Download 📁"], ["CSV"]):
-                fig = px.line(data)
-                fig.update_traces(line=dict(width=2.5))
-                fig.update_layout(dict(yaxis_title=data_unit, legend_title="Time series", yaxis_tickformat=".2r",
-                                       yaxis_hoverformat=".1f"))
-                st.plotly_chart(fig, use_container_width=True)
+                with chart_container(data, ["Chart 📈", "Data 📄", "Download 📁"], ["CSV"]):
+                    fig = px.line(data)
+                    fig.update_traces(line=dict(width=2.5))
+                    fig.update_layout(dict(yaxis_title=data_unit, legend_title="Time series", yaxis_tickformat=".2r",
+                                        yaxis_hoverformat=".1f"))
+                    st.plotly_chart(fig, width='stretch')
 
-                # Add ability to copy API call for the data
-                with st.expander("Show API call for this data"):
-                    start_str = start_date.strftime("%Y-%m-%dT00:00:00")
-                    end_str = end_date.strftime("%Y-%m-%dT23:59:59")
-                    api_call = (
-                        f"https://data.fingrid.fi/api/datasets/{data_id}/data?"
-                        f"startTime={start_str}Z&endTime={end_str}Z&format=json&oneRowPerTimePeriod=true&"
-                        f"pageSize=20000&locale=fi&sortBy=startTime&sortOrder=asc"
-                    )
-                    st.code(api_call, language='html')
-        # sleep for a short while to avoid overwhelming the API
-        time.sleep(0.5)
-    st.session_state.fetched = True
+                    # Add ability to copy API call for the data
+                    with st.expander("Show API call for this data"):
+                        start_str = start_date.strftime("%Y-%m-%dT00:00:00")
+                        end_str = end_date.strftime("%Y-%m-%dT23:59:59")
+                        api_call = (
+                            f"https://data.fingrid.fi/api/datasets/{data_id}/data?"
+                            f"startTime={start_str}Z&endTime={end_str}Z&format=json&oneRowPerTimePeriod=true&"
+                            f"pageSize=20000&locale=fi&sortBy=startTime&sortOrder=asc"
+                        )
+                        st.code(api_call, language='html')
+            # sleep for a short while to avoid overwhelming the API
+            time.sleep(0.5)
+        st.session_state.fetched = True
+    
+# Combine all other data if any
+if st.session_state.fetched and len(df_list) > 0:
+    with st.status("Combined data searches", expanded=True):
+        aggregation_selection = st.radio('Select data aggregation level',
+                                        ['3min', '15min', 'Hour', 'Day', 'Week', 'Month'],
+                                        key="search_agg", horizontal=True, index=2)
+
+        all_data = pd.concat(df_list, axis=1)
+        all_data = aggregate_data(all_data, aggregation_selection, 'ffill')
+        with chart_container(all_data, ["Chart 📈", "Data 📄", "Download 📁"], ["CSV"]):
+            fig = px.line(all_data)
+            fig.update_traces(line=dict(width=2.5))
+            fig.update_layout(dict(yaxis_title="", legend_title="Time series", yaxis_tickformat=".2r",
+                                   yaxis_hoverformat=".1f"))
+            # legend top of the chart
+            fig.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+            st.plotly_chart(fig, width='stretch')
 
 # Combine datahub data if any
 if st.session_state.fetched and len(datahub_list) > 0:
@@ -252,20 +271,4 @@ if st.session_state.fetched and len(datahub_list) > 0:
             fig.update_traces(line=dict(width=2.5))
             fig.update_layout(dict(yaxis_title="", legend_title="Time series", yaxis_tickformat=".2r",
                                    yaxis_hoverformat=".1f"))
-            st.plotly_chart(fig, use_container_width=True)
-    
-# Combine all other data if any
-if st.session_state.fetched and len(df_list) > 1:
-    with st.status("Combined data searches", expanded=True):
-        aggregation_selection = st.radio('Select data aggregation level',
-                                         ['3min', '15min', 'Hour', 'Day', 'Week', 'Month'],
-                                         key="search_agg", horizontal=True, index=2)
-
-        all_data = pd.concat(df_list, axis=1)
-        all_data = aggregate_data(all_data, aggregation_selection, 'ffill')
-        with chart_container(all_data, ["Chart 📈", "Data 📄", "Download 📁"], ["CSV"]):
-            fig = px.line(all_data)
-            fig.update_traces(line=dict(width=2.5))
-            fig.update_layout(dict(yaxis_title="", legend_title="Time series", yaxis_tickformat=".2r",
-                                   yaxis_hoverformat=".1f"))
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
