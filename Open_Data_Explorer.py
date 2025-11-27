@@ -223,6 +223,7 @@ if st.session_state.search:
                     fig.update_traces(line=dict(width=2.5))
                     fig.update_layout(dict(yaxis_title=data_unit, legend_title="Time series", yaxis_tickformat=".2r",
                                         yaxis_hoverformat=".1f"))
+                    fig.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
                     st.plotly_chart(fig, width='stretch')
 
                     # Add ability to copy API call for the data
@@ -271,4 +272,5 @@ if st.session_state.fetched and len(datahub_list) > 0:
             fig.update_traces(line=dict(width=2.5))
             fig.update_layout(dict(yaxis_title="", legend_title="Time series", yaxis_tickformat=".2r",
                                    yaxis_hoverformat=".1f"))
+            fig.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
             st.plotly_chart(fig, width='stretch')
