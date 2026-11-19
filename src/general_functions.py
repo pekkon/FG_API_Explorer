@@ -67,7 +67,7 @@ def aggregate_data(df, aggregation_selection, agg_level='mean'):
     elif aggregation_selection == '15min':
         agg = '15min'
     else:
-        agg = 'H'
+        agg = 'h'
     if agg_level == 'mean':
         return df.resample(agg).mean().round(1)
     elif agg_level == 'sum':
