@@ -219,11 +219,11 @@ if st.session_state.search:
                         df_list.append(data)
                         col1, col2, col3 = st.columns(3)
                         with col1:
-                            st.metric("Max value", f"{int(data.max() + 0.5)} {data_unit}")
+                            st.metric("Max value", f"{int(data.values.max() + 0.5)} {data_unit}")
                         with col2:
-                            st.metric("Average value", f"{int(data.mean() + 0.5)} {data_unit}")
+                            st.metric("Average value", f"{int(data.values.mean() + 0.5)} {data_unit}")
                         with col3:
-                            st.metric("Min value", f"{int(data.min() + 0.5)} {data_unit}")
+                            st.metric("Min value", f"{int(data.values.min() + 0.5)} {data_unit}")
                     fig = px.line(data)
                     fig.update_traces(line=dict(width=2.5))
                     fig.update_layout(dict(yaxis_title=data_unit, legend_title="Time series", yaxis_tickformat=".2r",
